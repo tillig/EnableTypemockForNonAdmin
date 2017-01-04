@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="All" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+	<Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>
+	<PropertyGroup>
+		<Configuration Condition="'$(Configuration)'==''">Debug</Configuration>
+		<BuildDir>..\build</BuildDir>
+		<BuildBinDir>$(BuildDir)\bin</BuildBinDir>
+		<BuildLogDir>$(BuildDir)\log</BuildLogDir>
+		<BuildPackageDir>$(BuildDir)\package</BuildPackageDir>
+	</PropertyGroup>
+	<ItemGroup>
+		<CleanFolders Include="$(BuildDir)"/>
+		<CleanFolders Include="EnableTypemockForNonAdmin\bin"/>
+		<CleanFolders Include="EnableTypemockForNonAdmin\obj"/>
+		<CleanFolders Include="Test\bin"/>
+		<CleanFolders Include="Test\obj"/>
+		<CleanFolders Include="TestResults"/>
+	</ItemGroup>
+	<Target Name="All">
+		<CallTarget Targets="Clean;Compile;Test" />
+		<CallTarget Targets="Package" Condition="'$(Configuration)' == 'Release'"/>
+	</Target>
+	<Target Name="Compile">
+		<Message Text="Creating build output folder hierarchy..."/>
+		<MakeDir Directories="$(BuildDir);$(BuildBinDir);$(BuildLogDir)"/>
+		<MSBuild Projects="EnableTypemockForNonAdmin.sln" Properties="Configuration=$(Configuration)"/>
+		<CreateItem Include="EnableTypemockForNonAdmin\bin\$(Configuration)\**;Test\bin\$(Configuration)\**">
+			<Output TaskParameter="Include" ItemName="BuildOutput"/>
+		</CreateItem>
+		<Copy SourceFiles="@(BuildOutput)" DestinationFolder="$(BuildBinDir)"/>
+	</Target>
+	<Target Name="Clean">
+		<RemoveDir Directories="@(CleanFolders)"/>
+	</Target>
+	<Target Name="Test">
+		<MakeDir Directories="$(BuildLogDir)"/>
+		<CreateProperty Value="$(BuildLogDir)\TestResults.trx">
+			<Output PropertyName="UnitTestResultsFile" TaskParameter="Value"/>
+		</CreateProperty>
+		<Delete Files="$(UnitTestResultsFile)"/>
+		<Exec Command="mstest.exe /testcontainer:&quot;Test\bin\$(Configuration)\Test.dll&quot; /resultsfile:&quot;$(UnitTestResultsFile)&quot;"/>
+	</Target>
+	<Target Name="Package">
+		<MakeDir Directories="$(BuildPackageDir)"/>
+		<GetAssemblyIdentity AssemblyFiles="$(BuildBinDir)\EnableTypemockForNonAdmin.exe">
+			<Output ItemName="AssemblyIdentities" TaskParameter="Assemblies"/>
+		</GetAssemblyIdentity>
+		<CreateProperty Value="%(AssemblyIdentities.Version)">
+			<Output PropertyName="Version" TaskParameter="Value"/>
+		</CreateProperty>
+		<CreateItem Include="$(BuildBinDir)\EnableTypemockForNonAdmin.exe;readme.html">
+			<Output ItemName="BinaryPackageFiles" TaskParameter="Include"/>
+		</CreateItem>
+		<Zip Files="@(BinaryPackageFiles)" ZipFileName="$(BuildPackageDir)\EnableTypemockForNonAdmin-$(Version).zip" Flatten="true"/>
+		<ItemGroup>
+			<SourcePackageFiles Include="$(MSBuildProjectDirectory)\**" Exclude="$(MSBuildProjectDirectory)\**\.svn\**;$(MSBuildProjectDirectory)\**\*.suo;$(MSBuildProjectDirectory)\**\*.user;$(MSBuildProjectDirectory)\**\bin\**;$(MSBuildProjectDirectory)\**\obj\**" />
+		</ItemGroup>
+		<Zip Files="@(SourcePackageFiles)" ZipFileName="$(BuildPackageDir)\EnableTypemockForNonAdmin-Source-$(Version).zip" WorkingDirectory="$(MSBuildProjectDirectory)" Flatten="false"/>
+	</Target>
+</Project>
