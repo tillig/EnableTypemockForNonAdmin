@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 
 namespace EnableTypemockForNonAdmin
@@ -92,7 +93,7 @@ namespace EnableTypemockForNonAdmin
 		private static bool SetRegistryPermissions(string username)
 		{
 			var catalog = new RegistryKeyCatalog();
-			foreach (var key in catalog.ProfilerKeys)
+			foreach (var key in catalog.ProfilerKeys.Union(catalog.SoftwareKeys))
 			{
 				try
 				{

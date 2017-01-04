@@ -19,6 +19,12 @@ namespace EnableTypemockForNonAdmin
 			@"{372DC2B6-0A34-4f22-BC34-BE7A18DE9137}", // DevPartner
 		};
 
+		private static readonly string[] HklmSoftwareRegistryKeys = new string[]
+		{
+			// HKLM\SOFTWARE\{0} where {0} gets substituted with "" for 64-bit and "Wow6432Node\" for 32-bit.
+			@"TypeMock\TypeMock.NET", // Typemock configuration options
+		};
+
 		public IEnumerable<RegistryKey> ProfilerKeys
 		{
 			get
@@ -39,6 +45,26 @@ namespace EnableTypemockForNonAdmin
 			}
 		}
 
+		public IEnumerable<RegistryKey> SoftwareKeys
+		{
+			get
+			{
+				foreach (var path in HklmSoftwareRegistryKeys)
+				{
+					var rk = this.GetHlkmSoftwareKey(path, RegistryView.Registry32);
+					if (rk != null)
+					{
+						yield return rk;
+					}
+					rk = this.GetHlkmSoftwareKey(path, RegistryView.Registry64);
+					if (rk != null)
+					{
+						yield return rk;
+					}
+				}
+			}
+		}
+
 		private RegistryKey GetHkcrClsidKey(string leaf, RegistryView bitness)
 		{
 			var rk = RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, bitness);
@@ -51,7 +77,37 @@ namespace EnableTypemockForNonAdmin
 			{
 				return null;
 			}
-			rk = rk.OpenSubKey(leaf, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ChangePermissions);
+			return GetLeafNode(rk, leaf);
+		}
+
+		private RegistryKey GetHlkmSoftwareKey(string leaf, RegistryView bitness)
+		{
+			var rk = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, bitness);
+			if (rk == null)
+			{
+				return null;
+			}
+			rk = rk.OpenSubKey("SOFTWARE");
+			if (rk == null)
+			{
+				return null;
+			}
+			return GetLeafNode(rk, leaf);
+		}
+
+		private RegistryKey GetLeafNode(RegistryKey baseNode, string remainingPath)
+		{
+			var rk = baseNode;
+			var pathPieces = remainingPath.Split('\\');
+			for (int i = 0; i < pathPieces.Length - 1; i++)
+			{
+				rk = rk.OpenSubKey(pathPieces[i]);
+				if (rk == null)
+				{
+					return null;
+				}
+			}
+			rk = rk.OpenSubKey(pathPieces[pathPieces.Length - 1], RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ChangePermissions);
 			if (rk == null)
 			{
 				return null;

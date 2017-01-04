@@ -31,5 +31,13 @@ namespace Test
 			var count = catalog.ProfilerKeys.Where(key => key.Name.Contains(@"{4B9D3A8C-033E-4F6E-9464-1E1E8604C0C3}")).Count();
 			Assert.AreEqual(0, count);
 		}
+
+		[TestMethod]
+		public void SoftwareKeys_ContainsTypemockKey()
+		{
+			var catalog = new RegistryKeyCatalog();
+			var count = catalog.SoftwareKeys.Where(key => key.Name.Contains(@"TypeMock\TypeMock.NET")).Count();
+			Assert.AreEqual(1, count); // Either 32-bit OR 64-bit key
+		}
 	}
 }

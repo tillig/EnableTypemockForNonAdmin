@@ -7,7 +7,7 @@ namespace Test
 	[TestClass]
 	public class UsernameFixture
 	{
-		private const string ValidUsername = @"PDXTILLIG01\LocalAdmin";
+		private const string ValidUsername = @"HIL-TILLIG\LocalAdmin";
 
 		[TestMethod]
 		[ExpectedException(typeof(ArgumentException))]
